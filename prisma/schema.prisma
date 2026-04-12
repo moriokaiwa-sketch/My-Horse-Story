@@ -1,0 +1,38 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Horse {
+  id         String   @id @default(uuid())
+  name       String
+  netkeibaId String   @unique
+  profileUrl String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  events     UpdateEvent[]
+}
+
+model UpdateEvent {
+  id        String   @id @default(uuid())
+  type      String   // "RACE", "NEWS", "STATUS"
+  title     String
+  summary   String?
+  sourceUrl String
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  horseId   String
+  horse     Horse    @relation(fields: [horseId], references: [id], onDelete: Cascade)
+
+  @@index([horseId])
+  @@index([date])
+}
