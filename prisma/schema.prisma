@@ -15,6 +15,7 @@ model Horse {
   name       String
   netkeibaId String   @unique
   profileUrl String?
+  nextRace   String?  @default("未定")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

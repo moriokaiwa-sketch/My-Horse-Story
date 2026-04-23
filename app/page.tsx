@@ -1,65 +1,97 @@
-import Image from "next/image";
+import prisma from '@/lib/db'
+import Link from 'next/link'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-export default function Home() {
+export default async function Home() {
+  const events = await prisma.updateEvent.findMany({
+    orderBy: { date: 'desc' },
+    include: { horse: true },
+    take: 50 // 直近50件
+  })
+
+  // 全登録馬のデータを取得し、次走予定を表示
+  const horses = await prisma.horse.findMany({
+    orderBy: { createdAt: 'desc' }
+  })
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="container mx-auto p-4 max-w-3xl space-y-8 py-8">
+      <header className="flex justify-between items-center py-6 border-b">
+        <h1 className="text-3xl font-bold tracking-tight">🐴 My Horse Story</h1>
+        <Link href="/horses" className="bg-zinc-900 border border-zinc-800 text-white shadow-sm px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-800 transition-colors shrink-0">
+          推し馬を管理
+        </Link>
+      </header>
+
+      {/* 次走予定セクション */}
+      {horses.length > 0 && (
+        <section className="mb-10">
+          <h2 className="text-xl font-bold mb-4">🎯 次走予定</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {horses.map(horse => (
+              <Card key={horse.id} className={`${horse.nextRace && horse.nextRace !== '未定' ? 'bg-blue-50 border-blue-200' : 'bg-zinc-50 border-zinc-200'} shadow-sm`}>
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className={`text-base ${horse.nextRace && horse.nextRace !== '未定' ? 'text-blue-800' : 'text-zinc-700'}`}>
+                    {horse.name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <p className={`text-sm font-medium ${horse.nextRace && horse.nextRace !== '未定' ? 'text-blue-900' : 'text-zinc-600'}`}>
+                    次走：{horse.nextRace || '未定'}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* タイムラインセクション */}
+      <h2 className="text-xl font-bold mb-4">📝 最近の更新・戦績</h2>
+      <main className="space-y-6">
+        {events.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-xl border border-dashed shadow-sm">
+            <p className="text-zinc-500 mb-4">まだ情報がありません。</p>
+            <Link href="/horses" className="text-sm font-medium text-blue-600 hover:underline">
+              最初の推し馬を登録しましょう！
+            </Link>
+          </div>
+        ) : (
+          <div className="relative border-l-2 border-zinc-200 ml-4 space-y-8 pb-8">
+            {events.map((event) => (
+              <div key={event.id} className="relative pl-6">
+                {/* タイムラインのドット */}
+                <span className="absolute -left-[9px] top-2 h-4 w-4 rounded-full bg-zinc-900 ring-4 ring-zinc-50" />
+                
+                <Card className="hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="space-y-2">
+                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                          {event.horse.name}
+                        </span>
+                        <CardTitle className="text-lg leading-tight">
+                          <a href={event.sourceUrl} target="_blank" rel="noreferrer" className="hover:text-blue-600 hover:underline">
+                            {event.title}
+                          </a>
+                        </CardTitle>
+                      </div>
+                      <time className="text-xs font-medium text-zinc-500 shrink-0">
+                        {new Date(event.date).toLocaleDateString('ja-JP')}
+                      </time>
+                    </div>
+                  </CardHeader>
+                  {event.summary && (
+                    <CardContent>
+                      <p className="text-zinc-600 text-sm leading-relaxed">{event.summary}</p>
+                    </CardContent>
+                  )}
+                </Card>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
     </div>
-  );
+  )
 }
