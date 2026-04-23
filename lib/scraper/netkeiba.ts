@@ -83,3 +83,76 @@ export async function fetchHorseEvents(netkeibaId: string, horseDbId: string) {
   
   return events;
 }
+
+// ニュースの日付文字列（「2時間前」「2026年04月20日」など）をDateオブジェクトにパースするヘルパー
+function parseNewsDate(dateText: string): Date {
+  const now = new Date();
+  if (dateText.includes('時間前')) {
+    const hours = parseInt(dateText, 10);
+    return new Date(now.getTime() - hours * 60 * 60 * 1000);
+  }
+  if (dateText.includes('分前')) {
+    const mins = parseInt(dateText, 10);
+    return new Date(now.getTime() - mins * 60 * 1000);
+  }
+  
+  // YYYY年MM月DD日 の形式
+  const match = dateText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+  if (match) {
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    // 時間表記があれば設定
+    const timeMatch = dateText.match(/(\d{1,2})時(\d{1,2})分/);
+    if (timeMatch) {
+      date.setHours(Number(timeMatch[1]), Number(timeMatch[2]), 0, 0);
+    }
+    return date;
+  }
+  return now; // パースできない場合は現在時刻をフォールバック
+}
+
+// 関連ニュースを取得して戦績イベント互換の形式で返す
+export async function fetchHorseNews(horseName: string, limit: number = 3) {
+  const url = `https://news.netkeiba.com/?pid=api_get_news_search&keyword=${encodeURIComponent(horseName)}&limit=${limit}&output=jsonp`;
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, cache: 'no-store' });
+    const buffer = await res.arrayBuffer();
+    const decoder = new TextDecoder('euc-jp');
+    const rawStr = decoder.decode(buffer);
+    
+    // JSONPレスポンス ("<html>...") から前後のカッコを外し、JSONパースしてHTML文字列を取り出す
+    const jsonStr = rawStr.replace(/^\(/, '').replace(/\)$/, '');
+    const html = JSON.parse(jsonStr);
+    
+    const $ = cheerio.load(html);
+    const articles: any[] = [];
+    
+    $('.NewsList').each((i, el) => {
+      if (articles.length >= limit) return;
+      
+      const a = $(el).find('a.ArticleLink');
+      if (a.length === 0) return;
+      
+      const title = a.find('.NewsTitle').text().trim();
+      const link = a.attr('href');
+      const img = a.find('img.Image').attr('src');
+      const dateText = a.find('.NewsData .Time').text().trim();
+      
+      if (title && link) {
+        articles.push({
+          id: `news_${horseName}_${i}`, // タイムラインのマージキー用ダミーID
+          type: 'NEWS',
+          title,
+          summary: null,
+          sourceUrl: link,
+          thumbnailUrl: img || null,
+          date: parseNewsDate(dateText),
+          horse: { name: horseName }
+        });
+      }
+    });
+    return articles;
+  } catch (e) {
+    console.error(`Failed to fetch news for ${horseName}:`, e);
+    return [];
+  }
+}
