@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { fetchHorseNews } from '@/lib/scraper/netkeiba'
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const dbEvents = await prisma.updateEvent.findMany({
     orderBy: { date: 'desc' },

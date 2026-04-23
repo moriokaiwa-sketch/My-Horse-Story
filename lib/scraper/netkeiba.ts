@@ -151,7 +151,8 @@ export async function fetchHorseNews(horseName: string, limit: number = 3) {
       }
     });
     return articles;
-  } catch (e) {
+  } catch (e: any) {
+    if (e.digest === 'DYNAMIC_SERVER_USAGE') throw e;
     console.error(`Failed to fetch news for ${horseName}:`, e);
     return [];
   }
