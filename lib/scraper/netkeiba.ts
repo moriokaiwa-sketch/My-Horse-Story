@@ -3,7 +3,7 @@ import iconv from 'iconv-lite';
 
 export async function fetchHorseProfile(netkeibaId: string) {
   const url = `https://db.netkeiba.com/horse/${netkeibaId}/`;
-  const res = await fetch(url, { cache: 'no-store' });
+  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }, cache: 'no-store' });
   const html = await res.arrayBuffer();
   const decodedHtml = iconv.decode(Buffer.from(html), 'euc-jp');
   
@@ -44,7 +44,7 @@ export async function fetchHorseProfile(netkeibaId: string) {
 
 export async function fetchHorseEvents(netkeibaId: string, horseDbId: string) {
   const url = `https://db.netkeiba.com/horse/result/${netkeibaId}/`;
-  const res = await fetch(url, { cache: 'no-store' });
+  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }, cache: 'no-store' });
   const html = await res.arrayBuffer();
   const decodedHtml = iconv.decode(Buffer.from(html), 'euc-jp');
   const $ = cheerio.load(decodedHtml);
