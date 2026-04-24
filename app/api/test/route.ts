@@ -8,11 +8,11 @@ export async function GET() {
   try {
     const horses = await prisma.horse.findMany()
     const dbEvents = await prisma.updateEvent.findMany()
-    let testNews = []
+    let testNews: any[] = []
     try {
       testNews = await fetchHorseNews("イクイノックス", 1)
     } catch (e: any) {
-      testNews = [{ error: e.message }]
+      testNews = [{ error: e.message, stack: e.stack }]
     }
     return NextResponse.json({ ok: true, horses, dbEvents, testNews })
   } catch (e: any) {
