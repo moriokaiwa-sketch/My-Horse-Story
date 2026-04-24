@@ -1,11 +1,11 @@
 import * as cheerio from 'cheerio';
+import iconv from 'iconv-lite';
 
 export async function fetchHorseProfile(netkeibaId: string) {
   const url = `https://db.netkeiba.com/horse/${netkeibaId}/`;
   const res = await fetch(url, { cache: 'no-store' });
   const html = await res.arrayBuffer();
-  const decoder = new TextDecoder('euc-jp');
-  const decodedHtml = decoder.decode(html);
+  const decodedHtml = iconv.decode(Buffer.from(html), 'euc-jp');
   
   const $ = cheerio.load(decodedHtml);
   
@@ -26,10 +26,10 @@ export async function fetchHorseProfile(netkeibaId: string) {
   try {
     const nextUrl = `https://db.netkeiba.com/social/horse_info_next.html?id=${netkeibaId}`;
     const nextRes = await fetch(nextUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, cache: 'no-store' });
-    if (nextRes.ok) {
-      const nextHtml = await nextRes.arrayBuffer();
-      const $next = cheerio.load(decoder.decode(nextHtml));
-      const nextRaceDd = $next('.next_race_dl dd').first();
+      if (nextRes.ok) {
+        const nextHtml = await nextRes.arrayBuffer();
+        const $next = cheerio.load(iconv.decode(Buffer.from(nextHtml), 'euc-jp'));
+        const nextRaceDd = $next('.next_race_dl dd').first();
       if (nextRaceDd.length > 0) {
         // 例: "2026/4/19 皐月賞" のように整形
         nextRace = nextRaceDd.text().replace(/\s+/g, ' ').trim();
@@ -46,8 +46,7 @@ export async function fetchHorseEvents(netkeibaId: string, horseDbId: string) {
   const url = `https://db.netkeiba.com/horse/result/${netkeibaId}/`;
   const res = await fetch(url, { cache: 'no-store' });
   const html = await res.arrayBuffer();
-  const decoder = new TextDecoder('euc-jp');
-  const decodedHtml = decoder.decode(html);
+  const decodedHtml = iconv.decode(Buffer.from(html), 'euc-jp');
   const $ = cheerio.load(decodedHtml);
   
   const events: any[] = [];
@@ -116,8 +115,7 @@ export async function fetchHorseNews(horseName: string, limit: number = 3) {
   try {
     const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, cache: 'no-store' });
     const buffer = await res.arrayBuffer();
-    const decoder = new TextDecoder('euc-jp');
-    const rawStr = decoder.decode(buffer);
+    const rawStr = iconv.decode(Buffer.from(buffer), 'euc-jp');
     
     // JSONPレスポンス ("<html>...") から前後のカッコを外し、JSONパースしてHTML文字列を取り出す
     const jsonStr = rawStr.replace(/^\(/, '').replace(/\)$/, '');
