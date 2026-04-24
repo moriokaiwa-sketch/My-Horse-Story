@@ -25,7 +25,7 @@ export async function fetchHorseProfile(netkeibaId: string) {
   // 専用の次走・近況情報ページから取得 (スクリーンショットのUI用)
   try {
     const nextUrl = `https://db.netkeiba.com/social/horse_info_next.html?id=${netkeibaId}`;
-    const nextRes = await fetch(nextUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, cache: 'no-store' });
+    const nextRes = await fetch(nextUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8', 'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8' }, cache: 'no-store' });
       if (nextRes.ok) {
         const nextHtml = await nextRes.arrayBuffer();
         const $next = cheerio.load(iconv.decode(Buffer.from(nextHtml), 'euc-jp'));
@@ -113,7 +113,7 @@ function parseNewsDate(dateText: string): Date {
 export async function fetchHorseNews(horseName: string, limit: number = 3) {
   const url = `https://news.netkeiba.com/?pid=api_get_news_search&keyword=${encodeURIComponent(horseName)}&limit=${limit}&output=jsonp`;
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, cache: 'no-store' });
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8', 'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8' }, cache: 'no-store' });
     const buffer = await res.arrayBuffer();
     const rawStr = iconv.decode(Buffer.from(buffer), 'euc-jp');
     
