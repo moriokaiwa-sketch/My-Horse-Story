@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Link from 'next/link'
 import { DeleteHorseButton } from '@/components/horse/DeleteHorseButton'
 
+export const dynamic = 'force-dynamic'
+
 export default async function HorsesPage() {
   const horses = await prisma.horse.findMany({
     orderBy: { createdAt: 'desc' }
