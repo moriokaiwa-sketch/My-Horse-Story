@@ -3,7 +3,7 @@ import iconv from 'iconv-lite';
 
 export async function fetchHorseProfile(netkeibaId: string) {
   const url = `https://db.netkeiba.com/horse/${netkeibaId}/`;
-  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }, cache: 'no-store' });
+  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8', 'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8' }, cache: 'no-store' });
   const html = await res.arrayBuffer();
   const decodedHtml = iconv.decode(Buffer.from(html), 'euc-jp');
   
@@ -44,7 +44,7 @@ export async function fetchHorseProfile(netkeibaId: string) {
 
 export async function fetchHorseEvents(netkeibaId: string, horseDbId: string) {
   const url = `https://db.netkeiba.com/horse/result/${netkeibaId}/`;
-  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }, cache: 'no-store' });
+  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8', 'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8' }, cache: 'no-store' });
   const html = await res.arrayBuffer();
   const decodedHtml = iconv.decode(Buffer.from(html), 'euc-jp');
   const $ = cheerio.load(decodedHtml);
