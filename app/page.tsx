@@ -2,6 +2,7 @@ import prisma from '@/lib/db'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { fetchHorseNews } from '@/lib/scraper/netkeiba'
+import { AutoUpdater } from '@/components/AutoUpdater'
 
 export const dynamic = 'force-dynamic';
 
@@ -135,6 +136,7 @@ export default async function Home() {
           </div>
         )}
       </main>
+      <AutoUpdater />
     </div>
   )
 }
