@@ -1,12 +1,12 @@
 import prisma from '@/lib/db'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { fetchHorseNews } from '@/lib/scraper/netkeiba'
 import { AutoUpdater } from '@/components/AutoUpdater'
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
+  // 戦績もニュースもすべてDBから取得（ニュースは同期APIで自動保存される）
   const dbEvents = await prisma.updateEvent.findMany({
     orderBy: { date: 'desc' },
     include: { horse: true },
@@ -17,17 +17,6 @@ export default async function Home() {
   const horses = await prisma.horse.findMany({
     orderBy: { createdAt: 'desc' }
   })
-
-  // サーバーサイドで各馬の最新ニュースを非同期でフェッチ
-  const newsNestedArrays = await Promise.all(
-    horses.map(horse => fetchHorseNews(horse.name, 3))
-  );
-  const newsEvents = newsNestedArrays.flat();
-
-  // 戦績とニュースを合成して、日付の降順でソート
-  const mixedEvents = [...dbEvents, ...newsEvents].sort((a, b) => {
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
-  });
 
   return (
     <div className="container mx-auto p-4 max-w-3xl space-y-8 py-8">
@@ -64,7 +53,7 @@ export default async function Home() {
       {/* タイムラインセクション */}
       <h2 className="text-xl font-bold mb-4">📝 最近の更新・関連ニュース</h2>
       <main className="space-y-6">
-        {mixedEvents.length === 0 ? (
+        {dbEvents.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl border border-dashed shadow-sm">
             <p className="text-zinc-500 mb-4">まだ情報がありません。</p>
             <Link href="/horses" className="text-sm font-medium text-blue-600 hover:underline">
@@ -73,7 +62,7 @@ export default async function Home() {
           </div>
         ) : (
           <div className="relative border-l-2 border-zinc-200 ml-4 space-y-8 pb-8">
-            {mixedEvents.map((event) => (
+            {dbEvents.map((event) => (
               <div key={event.id} className="relative pl-6">
                 {/* タイムラインのドット */}
                 <span className={`absolute -left-[9px] top-2 h-4 w-4 rounded-full ring-4 ring-zinc-50 ${event.type === 'NEWS' ? 'bg-orange-500' : 'bg-zinc-900'}`} />

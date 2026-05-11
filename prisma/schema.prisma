@@ -26,8 +26,9 @@ model UpdateEvent {
   id        String   @id @default(uuid())
   type      String   // "RACE", "NEWS", "STATUS"
   title     String
-  summary   String?
-  sourceUrl String
+  summary      String?
+  sourceUrl    String
+  thumbnailUrl String?
   date      DateTime
   createdAt DateTime @default(now())
 

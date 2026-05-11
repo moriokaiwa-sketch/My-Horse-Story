@@ -1,5 +1,5 @@
 import prisma from '@/lib/db'
-import { fetchHorseEvents, fetchHorseProfile } from '@/lib/scraper/netkeiba'
+import { fetchHorseEvents, fetchHorseProfile, fetchHorseNews } from '@/lib/scraper/netkeiba'
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
@@ -17,6 +17,7 @@ export async function GET(request: Request) {
 
   const horses = await prisma.horse.findMany()
   let totalNewEvents = 0
+  let totalNewNews = 0
 
   for (const horse of horses) {
     try {
@@ -45,9 +46,9 @@ export async function GET(request: Request) {
         }
       }
 
+      // 戦績イベントの取得と保存
       const events = await fetchHorseEvents(horse.netkeibaId, horse.id)
       
-      // Sequential check to correctly process inserts and avoid duplicates
       for (const event of events) {
         const existing = await prisma.updateEvent.findFirst({
           where: {
@@ -61,7 +62,6 @@ export async function GET(request: Request) {
           await prisma.updateEvent.create({ data: event })
           totalNewEvents++
           
-          // Trigger Email if configured
           if (process.env.RESEND_API_KEY && process.env.NOTIFICATION_EMAIL) {
             await resend.emails.send({
               from: 'My Horse Story <onboarding@resend.dev>',
@@ -78,10 +78,53 @@ export async function GET(request: Request) {
           }
         }
       }
+
+      // 新着ニュースの取得と保存
+      const newsArticles = await fetchHorseNews(horse.name, 5)
+      for (const article of newsArticles) {
+        const existingNews = await prisma.updateEvent.findFirst({
+          where: {
+            horseId: horse.id,
+            type: 'NEWS',
+            sourceUrl: article.sourceUrl
+          }
+        })
+
+        if (!existingNews) {
+          await prisma.updateEvent.create({
+            data: {
+              type: 'NEWS',
+              title: article.title,
+              summary: article.summary || null,
+              sourceUrl: article.sourceUrl,
+              thumbnailUrl: article.thumbnailUrl || null,
+              date: new Date(article.date),
+              horseId: horse.id
+            }
+          })
+          totalNewNews++
+
+          // 新着ニュースのメール通知
+          if (process.env.RESEND_API_KEY && process.env.NOTIFICATION_EMAIL) {
+            await resend.emails.send({
+              from: 'My Horse Story <onboarding@resend.dev>',
+              to: process.env.NOTIFICATION_EMAIL,
+              subject: `【新着ニュース】${horse.name} - My Horse Story`,
+              html: `
+                <h2>📰 ${horse.name} の関連ニュース</h2>
+                <p><b>${article.title}</b></p>
+                <p>${new Date(article.date).toLocaleDateString('ja-JP')} 配信</p>
+                <br/>
+                <p><a href="${article.sourceUrl}">記事を読む</a></p>
+              `
+            }).catch(err => console.error("News email failed", err))
+          }
+        }
+      }
     } catch (e) {
       console.error(`Failed to update horse ${horse.name}:`, e)
     }
   }
 
-  return NextResponse.json({ success: true, newEventsCount: totalNewEvents })
+  return NextResponse.json({ success: true, newEventsCount: totalNewEvents, newNewsCount: totalNewNews })
 }

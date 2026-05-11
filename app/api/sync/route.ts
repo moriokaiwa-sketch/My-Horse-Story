@@ -1,7 +1,10 @@
 import prisma from '@/lib/db'
-import { fetchHorseEvents, fetchHorseProfile } from '@/lib/scraper/netkeiba'
+import { fetchHorseEvents, fetchHorseProfile, fetchHorseNews } from '@/lib/scraper/netkeiba'
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 // Force dynamic execution for API route
 export const dynamic = 'force-dynamic'
@@ -33,6 +36,23 @@ export async function GET() {
         // 次走情報などのプロフィールを更新
         const profile = await fetchHorseProfile(horse.netkeibaId)
         
+        // 次走情報が変わった場合にメール通知
+        if (profile.nextRace !== horse.nextRace && profile.nextRace && profile.nextRace !== '未定') {
+          if (process.env.RESEND_API_KEY && process.env.NOTIFICATION_EMAIL) {
+            await resend.emails.send({
+              from: 'My Horse Story <onboarding@resend.dev>',
+              to: process.env.NOTIFICATION_EMAIL,
+              subject: `【次走予定】${horse.name} - My Horse Story`,
+              html: `
+                <h2>🐴 ${horse.name} の次走予定が更新されました！</h2>
+                <p>👉 <b>${profile.nextRace}</b></p>
+                <br/>
+                <p><a href="${profile.profileUrl || ''}">netkeibaで確認する</a></p>
+              `
+            }).catch(err => console.error("Email failed", err))
+          }
+        }
+
         // updatedAt を確実に更新するため、強制的に現在時刻を入れる
         await prisma.horse.update({
           where: { id: horse.id },
@@ -55,6 +75,49 @@ export async function GET() {
 
           if (!existing) {
             await prisma.updateEvent.create({ data: event })
+          }
+        }
+
+        // 新着ニュースを取得してDBに保存＋メール通知
+        const newsArticles = await fetchHorseNews(horse.name, 5)
+        for (const article of newsArticles) {
+          // sourceUrl（記事のリンク）で重複チェック
+          const existingNews = await prisma.updateEvent.findFirst({
+            where: {
+              horseId: horse.id,
+              type: 'NEWS',
+              sourceUrl: article.sourceUrl
+            }
+          })
+
+          if (!existingNews) {
+            await prisma.updateEvent.create({
+              data: {
+                type: 'NEWS',
+                title: article.title,
+                summary: article.summary || null,
+                sourceUrl: article.sourceUrl,
+                thumbnailUrl: article.thumbnailUrl || null,
+                date: new Date(article.date),
+                horseId: horse.id
+              }
+            })
+
+            // 新着ニュースのメール通知
+            if (process.env.RESEND_API_KEY && process.env.NOTIFICATION_EMAIL) {
+              await resend.emails.send({
+                from: 'My Horse Story <onboarding@resend.dev>',
+                to: process.env.NOTIFICATION_EMAIL,
+                subject: `【新着ニュース】${horse.name} - My Horse Story`,
+                html: `
+                  <h2>📰 ${horse.name} の関連ニュース</h2>
+                  <p><b>${article.title}</b></p>
+                  <p>${new Date(article.date).toLocaleDateString('ja-JP')} 配信</p>
+                  <br/>
+                  <p><a href="${article.sourceUrl}">記事を読む</a></p>
+                `
+              }).catch(err => console.error("News email failed", err))
+            }
           }
         }
         
